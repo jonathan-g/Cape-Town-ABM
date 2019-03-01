@@ -1,4 +1,3 @@
-
 globals
 [
   area                           ;area of the world
@@ -6,8 +5,20 @@ globals
   mean-yield-his                 ;mean yield of turtles for histogram plot
   mean-wealth-his                ;mean wealth of turtles for histogram plot
   transaction
+  Ewater                         ;Efficiency of Water Use
+  max-elevation                  ;Max elevation of Steenbras Reservoir
+
 ]
 
+breed [CPers CPer]
+breed [SWfarmers SWfarmer]
+breed [Dfarmers Dfarmer]
+breed [STfarmers STfarmer]
+breed [BVfarmers BVfarmer]
+breed [Lfarmers Lfarmer]
+breed [Wfarmers Wfarmer]
+
+; set weather station also as special breeds
 
 turtles-own
 [
@@ -24,18 +35,113 @@ patches-own
            ;Voëlvlei Reservoir, TR/5 stands for the Theewaterkloof Reservoir, SR/6 represents Steenbras Reservoir, C/7 Stands for Cape Town,
            ;SW/8 stands for Swartland, D/9 stands for Drakenstein, S/10 stands for Stellenbosch, B/11 stands for Breede Valley, L/12 stands for Langeberg,
            ;W/13 stands for Witzenberg
+  elevation
+  historic-elevation  ;Storing historic evelation level at 10 day basis
+  Temp     ;Temperature daily temperature
+  Rain     ;Rainfall daily rainfall
+  ET       ;Evapotranspiration
+  production;
 ]
 
 
 to setup
 
- ;; (for this model to work with NetLogo's new plotting features,
-  ;; __clear-all-and-reset-ticks should be replaced with clear-all at
-  ;; the beginning of your setup procedure and reset-ticks at the end
-  ;; of the procedure.)
-  __clear-all-and-reset-ticks
+  ca
+  reset-ticks
   clear-output
 
+  build-territory
+  initialize-agents
+
+  set mean-yield-his []
+  set mean-wealth-his []
+  initialize-patch
+
+
+end
+
+to go
+
+  update-weather
+  update-reservoir-elevation
+  ask patches with [landtype = 3]
+  [show elevation]
+
+  tick
+end
+
+to update-weather
+  ;How to read the weather data (say we have the weather data from 9 stations, and we are spreading them accross the territory?
+
+end
+
+to update-reservoir-elevation
+  let period 1   ;ten day period
+
+  while [period != 4]
+    [
+      ask patches with [landtype = 3]
+      [
+        set elevation random-normal 70  10;calculate the level based on rainfall and land area
+        set historic-elevation lput elevation historic-elevation
+      ]
+      set period period + 1
+    ]
+end
+
+to irrigate-land
+;read rainfall and temperature data from a file, each station will have a reading of that day or period say mean is Temp-3
+  let i 7 ; start with cape town
+  let Temp-list [1 2 3 4 5 6] ; just for now
+  let Rain-list [1 2 3 4 5 6] ; just for now
+  let I-index         [1 2 3 4 5 6] ; Just for now (I need to be pre-calculated) for Thronthwaite method
+  let m         [1 2 3 4 5 6] ; just for now (m need to be pre-calculated) for Thronthwaite method
+  while [i != 14] ;so it loops through all areas
+  [
+    ask patches with [landtype = i]
+    [
+      set Temp item ( i - 7) Temp-list
+      set Rain item ( i - 7) Rain-list
+      set ET 16 * (10 * Temp / I-index) ^ m
+      let Water-Demand Ewater * (ET - Rain) * 100 ; say we have the grid of 100 km^2
+    ]
+  ]
+
+end
+
+
+
+to generate-power
+  let power [elevation] of patches with [landtype = 6] / max-elevation * 180 ;unit in mega watts
+end
+
+
+
+to calculate-municipal-demand
+  ;get water stress level
+  ;determine ideal demand under different water stress level
+  ;set price based on price elasticity (ideal demand)
+  ;each agent calculate its water usage at each month
+
+end
+
+
+
+to allocate-water
+  ;it need to be two scenarios, and based on priorities of each agent
+end
+
+
+
+to calculate-priority
+  ;agriculture, compare production with previous production, and use percentage as rating
+  ;energy, percentage of the max capacity
+  ;water price compare to original price percentage (historical price with no stress adjust for inflation)
+end
+
+
+
+to build-territory
   file-open "spatial_data.txt"
   while [not file-at-end?]
   [
@@ -46,74 +152,107 @@ to setup
   ]
   file-close
 
-  ask patches
-    [
-      ifelse  landtype = 1 ; out of scope Else
-      [set pcolor black]
-      [;do nothing
-      ]
 
-      ifelse  landtype = 2
-      [set pcolor blue]
-      [;do nothing
-      ]
+ask patches
+      [
+        ifelse  landtype = 1 ; out of scope Else
+        [set pcolor 69 ;light green
+        ]
+        [;do nothing
+        ]
 
-      ifelse  landtype = 3; reservoir
-      [set pcolor 85; light blue
-      ]
-      [;do nothing
-      ]
+        ifelse  landtype = 2 ; ocean
+        [set pcolor 96 ; ocean blue
+        ]
+        [;do nothing
+        ]
 
-      ifelse  landtype = 4; reservoir
-      [set pcolor 85; light blue
-      ]
-      [;do nothing
-      ]
+        ifelse  landtype = 3; reservoir
+        [set pcolor 85; light blue
+         set elevation 100
+        ]
+        [;do nothing
+        ]
 
-      ifelse  landtype = 5; reservoir
-      [set pcolor 85; light blue
-      ]
-      [;do nothing
-      ]
+        ifelse  landtype = 4; reservoir
+        [set pcolor 85; light blue
+        ]
+        [;do nothing
+        ]
 
-      ifelse  landtype = 6; reservoir
-      [set pcolor 85; light blue
-      ]
-      [;do nothing
-      ]
+        ifelse  landtype = 5; reservoir
+        [set pcolor 85; light blue
+        ]
+        [;do nothing
+        ]
 
-      ifelse  landtype = 7; Cape Town
-      [set pcolor 66; light green
-      ]
-      [;do nothing
-      ]
+        ifelse  landtype = 6; reservoir
+        [set pcolor 85; light blue
+        ]
+        [;do nothing
+        ]
 
-      ifelse  landtype = 8; Cape Town
-      [set pcolor yellow; light green
-      ]
-      [;do nothing
-      ]
+        ifelse  landtype = 7; Cape Town
+        [set pcolor 65; light green
+        ]
+        [;do nothing
+        ]
+
+        ifelse  landtype = 8; Swartland
+        [set pcolor 27; yellow
+        ]
+        [;do nothing
+        ]
+
+        ifelse  landtype = 9; Drakenstein
+        [set pcolor orange
+        ]
+        [;do nothing
+        ]
+
+        ifelse  landtype = 10; Stellenbosch
+        [set pcolor 26
+        ]
+        [;do nothing
+        ]
+
+        ifelse  landtype = 11; Breede Valley
+        [set pcolor 16
+        ]
+        [;do nothing
+        ]
+
+        ifelse  landtype = 12; Langeberg
+        [set pcolor 15
+        ]
+        [;do nothing
+        ]
+
+        ifelse  landtype = 13; Witzenberg
+        [set pcolor 14
+        ]
+        [;do nothing
+        ]
+
   ]
-
-  set mean-yield-his []
-  set mean-wealth-his []
-
-
 end
 
-to setSwartland
-  let i 9
-  ask patch  6 9
-  [set pcolor white]
-
-  ask patch 0 20
-  [set pcolor red]
-
-  ask patch 0 1
-  [set pcolor green]
-
+to initialize-patch
+  ask patches
+  [
+    set elevation random-normal 80 10
+    set historic-elevation []
+  ]
 end
 
+to initialize-agents
+
+ create-CPers 1
+  [
+    set color black
+    move-to one-of patches with [landtype = 7]
+  ]
+end
 
 @#$#@#$#@
 GRAPHICS-WINDOW
@@ -159,6 +298,202 @@ NIL
 NIL
 NIL
 1
+
+BUTTON
+16
+68
+80
+102
+NIL
+go
+T
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+PLOT
+66
+686
+266
+836
+SDL level
+Level
+Frequency
+0.0
+100.0
+0.0
+3000.0
+true
+false
+"" ""
+PENS
+"pen-0" 1.0 1 -7500403 true "" "histogram [historic-elevation] of patch 15 -17\n"
+
+BUTTON
+31
+122
+95
+156
+NIL
+stop
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+PLOT
+66
+536
+266
+686
+SDU level
+Month
+Level
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 0 -16777216 true "" "plot count turtles"
+
+PLOT
+465
+536
+665
+686
+Voalvlei Level
+NIL
+NIL
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 0 -16777216 true "" "plot count turtles"
+
+PLOT
+664
+536
+864
+686
+Theewaterskloof Level
+Month
+Level
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 0 -16777216 true "" "plot count turtles"
+
+PLOT
+265
+536
+465
+686
+Berg Level
+NIL
+NIL
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 0 -16777216 true "" "plot count turtles"
+
+PLOT
+660
+10
+860
+160
+Power Generation
+Month
+KWh
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 0 -16777216 true "" "plot count turtles"
+
+PLOT
+660
+160
+860
+310
+Grape Production
+Month
+Production
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 0 -16777216 true "" "plot count turtles"
+
+PLOT
+861
+160
+1061
+310
+Municipal Water Demand
+Usage
+Demand
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 0 -16777216 true "" "plot count turtles"
+
+PLOT
+861
+10
+1061
+160
+Population
+Month
+Population
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 0 -16777216 true "" "plot count turtles"
 
 @#$#@#$#@
 # Purpose
