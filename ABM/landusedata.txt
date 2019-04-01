@@ -1,0 +1,8 @@
+Municipality	Wine grapes	Irrigated Land	All grapes		
+Breede Valley	17198.97	26821.53	22792.1		
+Drakenstein	15461.04	22007.66	17505.05		
+Langeberg	16662.43	25998.18	16957.85		
+Stellenbosch	16286.03	18531.1		16314.26		
+Witzenberg	5510.7		27478.42	5571.2		
+City of Cape Town	5765.51	7608.81	5780.25		
+Swartland	13560.13	18845.76	14852.73		
