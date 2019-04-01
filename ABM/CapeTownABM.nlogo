@@ -7,9 +7,42 @@ globals
   transaction
   Ewater                         ;Efficiency of Water Use
   max-elevation                  ;Max elevation of Steenbras Reservoir
-
+  month                          ;month count within a year
+  year
+  total-irrigation-demand-this-month
+  total-irrigation-demand-monthly
+  total-municipal-demand-this-month
+  total-allocation-this-month
+  total-allocation-monthly
+  ag-allocation-this-month
+  ag-allocation-monthly
+  mu-allocation-this-month
+  mu-allocation-monthly
+  generation-this-month
+  generation-history
+  municipal-water-use
+  ag-water-use
+  dam-inflow-monthly
+  individual-demand
+  days-in-month
+  V-monthly
+  V-Display
+  mu-demand
+  population
+  growth-rate
+  reduction-monthly
+  reduction-this-month
+  energy-output-this-month
+  avg-V
+  water-price-this-month
+  water-price-history
 ]
 
+breed [BRmanagers BRmanager]
+breed [VRmanagers VRmanager]
+breed [TRmanagers TRmanager]
+breed [SRmanagers SRmanager]
+breed [Weathermans Weatherman]
 breed [CPers CPer]
 breed [SWfarmers SWfarmer]
 breed [Dfarmers Dfarmer]
@@ -17,14 +50,49 @@ breed [STfarmers STfarmer]
 breed [BVfarmers BVfarmer]
 breed [Lfarmers Lfarmer]
 breed [Wfarmers Wfarmer]
+breed [Watermanagers Watermanager]
 
 ; set weather station also as special breeds
 
 turtles-own
 [
+  rainfall-monthly
+  temp-monthly
+  SW-monthly
+  identity
 
 ]
 
+Watermanagers-own
+[
+  volume-this-month
+  upper-limit
+;  ag-allocation
+  city-allocation
+  SR-allocation
+]
+
+
+SRmanagers-own
+[
+  generation-capacity
+  actual-generation
+]
+
+CPers-own
+[
+  CP-water-demand
+;  population
+;  growth-rate
+]
+
+
+;Weathermans-own
+;[
+;  rainfall-monthly
+;  temp-monthly
+;  identity
+;]
 
 patches-own
 [
@@ -36,11 +104,20 @@ patches-own
            ;SW/8 stands for Swartland, D/9 stands for Drakenstein, S/10 stands for Stellenbosch, B/11 stands for Breede Valley, L/12 stands for Langeberg,
            ;W/13 stands for Witzenberg
   elevation
+  change-volume
+  capacity
+  volume
+  inflow
   historic-elevation  ;Storing historic evelation level at 10 day basis
+  historic-volume
   Temp     ;Temperature daily temperature
   Rain     ;Rainfall daily rainfall
   ET       ;Evapotranspiration
   production;
+  wine-irrigation-area
+  AWC      ;Available water content
+  SWD      ; soil water deficit
+  irrigation-demand
 ]
 
 
@@ -52,62 +129,575 @@ to setup
 
   build-territory
   initialize-agents
-
+  set month 1
+  set year 2009
   set mean-yield-his []
   set mean-wealth-his []
   initialize-patch
+  set total-irrigation-demand-monthly []
+  set total-allocation-monthly []
+  set ag-allocation-monthly []
+  set mu-allocation-monthly []
+  set generation-history []
+  set V-monthly []
+  set population 3.875
+  set growth-rate 0.008
+  set reduction-monthly []
+  set water-price-history [ ]
+  create-CPers 1 [
+  ]
+  create-Watermanagers 1 [
+    set upper-limit 900000
+    set volume-this-month 833388
+  ]
+  create-SRmanagers 1 [set generation-capacity 180]
+  set dam-inflow-monthly [-3946  -4534 -15426  18535  30979 207643 118213  45156  30054  31341  16926  13210 -11892 -13524   8313
+    39344  54305 109470  62115  51845  39288  30146  29651   1922 -11503  -3371  -9852  15244  29656 136839
+    111435  76244  72084  24522   6834   5097  -9201 -13016 -11072  28943  28306  67024 173508 185630  94650
+    31398  16158 -11437 -10866  -4691   -764  28554  32333 150717 144549 104123  31837  17705  43953  -6785
+    25068  -4331  -8691  19009  45421 189041 101325  32223  13062   6382  -1243  -3809  -4902  12724 -16563
+    -13051 -11433  56369 116734 115931  37017  38021 -16844 -12148   3047 -16435   8999  19227  20857  68766
+    144368 105964  51648  41917 -10343 -12876   -562  -2569   -452   -589  -4942  51382  53879  77581  56702
+    30685   1435   9823   7163  25645   3130  10079  64453 197680  91926 113151 105600   8604 -11230   1373]
 
+  set municipal-water-use [31837 32620 34875 30150 26722 25140 25947 26722 26040 27652 31050 33945 35588 31640 34348 28830 27714
+    24180 23901 24583 24570 28427 28650 34131 35650 32144 35309 30450 26164 25470 24304 24800 24210 27652
+    29010 32302 33883 34104 34689 29730 27063 23790 23467 23653 23730 26629 28230 32612 35061 31444 32829
+    28140 26567 24270 24490 23467 22350 25606 27600 30163 32891 32564 32984 28920 27218 22230 22630 23405
+    24270 28427 30060 36208 37634 34636 37665 33690 30628 27330 27590 27869 27720 32209 32490 34100 34286
+    30537 30535 26460 25761 23310 23467 25947 25680 28365 28170 28737 28489 24500 25358 23310 23219 20400
+    20894 20553 19710 19933 19350 20460 19778 15988 17701 16650 17453 16680 16337 16740 15600 18104 17940
+    18662]
 
+  set ag-water-use [27590 26096 23901 12750  1488   690   713   713   690  3689  7290 20243 26722 25284 23126 12360  1426
+    690   682   682   690  3565 10230 28334 37386 35364 32364 17280  2015   990   992   992   990  4991
+    8280 22940 30256 29667 26226 13980  1612   780   775   775   780  4030  8970 24862 32829 31052 28427
+    15180  1767   870   868   868   870  4371  8340 23157 30566 28896 26443 14130  1643   810   806   806
+    810  4092 10290 28489 37603 35560 32550 17370  2015   990   992   992   990  5022 10770 29884 39432
+    38628 34131 18240  2108  1050  1023  1023  1050  5270  9570 26505 34999 33096 30287 16170  1891   930
+    930   930   930  4681  9600 26505 34100 30800     0     0     0     0     0     0     0     0 10830
+    24211]
+
+  set individual-demand [275 288 276 245 217 202 195 197 202 221 243 268 275 288 276 245 217 202 195 197 202 221 243 268 275 288 276 245 217 202 195 197 202 221 243
+    268 275 288 276 245 217 202 195 197 202 221 243 268 275 288 276 245 217 202 195 197 202 221 243 268 275 288 276 245 217 202 195 197 202 221
+    243 268 275 288 276 245 217 202 195 197 202 221 243 268 275 288 276 245 217 202 195 197 202 221 243 268 275 288 276 245 217 202 195 197 202
+    221 243 268 275 288 276 245 217 202 195 197 202 221 243 268]
+
+  set days-in-month [31 28 31 30 31 30 31 31 30 31 30 31 31 28 31 30 31 30 31 31 30 31 30 31 31 28 31 30 31 30 31 31 30 31 30 31 31 29 31 30 31 30 31 31 30 31 30 31 31 28 31 30 31 30 31 31 30 31 30 31 31 28 31 30 31 30 31 31 30 31 30 31 31 28 31 30 31 30 31 31 30 31 30 31 31 29 31 30 31 30 31 31 30 31 30 31 31 28 31 30 31 30 31 31 30 31 30 31 31 28 31 30 31 30 31 31 30 31 30 31]
+  set avg-V [730842.3 661785.3 594616.5 575904.7 584171.5 702642.2 796237.2 853529.7 875358.8 867419.3 848132.5 789934.5]
+;  load-rain-temp-history
 end
 
 to go
+  ;;;;;;;;;;;;;;
 
-  update-weather
   update-reservoir-elevation
-  ask patches with [landtype = 3]
-  [show elevation]
+  irrigate-land
+;  calculate-municipal-demand
+;  ask patches with [landtype = 3]
+;  [show elevation]
+  ifelse Scenario-1? ;if the switch is on, it goes to scenario 1. else it goes to scenario 2
+  [scenario-one]
+  [scenario-two]
 
-  tick
+  set month month + 1
+  ifelse month > 12
+  [set month 1
+    set year year + 1
+    let current-pop (population * (1 + growth-rate))
+    set population current-pop
+  ]
+  []
+
+  tick ;total month
+  if ticks = 120   [stop]
+
 end
 
-to update-weather
-  ;How to read the weather data (say we have the weather data from 9 stations, and we are spreading them accross the territory?
+
+to scenario-one
+  let V [volume-this-month] of one-of Watermanagers
+
+  if V > 921000
+  [set V 921000]
+  set V-Display V
+  set V-monthly lput V V-monthly
+  print V
+  let ag-D last total-irrigation-demand-monthly + (share-other-crops-irrigation * (item ticks ag-water-use)) ;updated wine grapes irrigation demand + the rest of the water
+  ;calculate municipal demand we use average monthly city demand predrought
+  let ID item ticks individual-demand
+  print ID
+  print "individual-demand"
+  let DAY item ticks days-in-month
+  print DAY
+  print "days in a month"
+  let POP population
+  print POP
+  print "population in millions"
+  set mu-demand (ID * DAY * POP)
+  let mu-D mu-demand
+  print mu-D
+;  let mu-D (item ticks individual-demand) * (item ticks days-in-month) * [population] of one-of CPers
+;  print mu-D
+  ifelse ( V > (0.5 * [upper-limit] of one-of Watermanagers) ); no restriction
+  [
+    print "above 0.5, no restriction"
+    set ag-allocation-this-month ag-D
+    set mu-allocation-this-month mu-D
+    set reduction-this-month 0
+    set total-allocation-this-month ag-allocation-this-month + mu-allocation-this-month
+    ask one-of SRmanagers
+    [
+      set actual-generation 180
+      set energy-output-this-month actual-generation
+    ]
+  ];no restriction
+  [
+    ifelse ( V > (0.45 * [upper-limit] of one-of Watermanagers)  )
+    [
+      print "restriction 2, 0.5-0.45"
+      let reduction 0.2
+      set reduction-this-month reduction
+      set ag-allocation-this-month ( 1 - reduction ) * ag-D
+      set mu-allocation-this-month (1 - reduction) * mu-D
+      set total-allocation-this-month ag-allocation-this-month + mu-allocation-this-month
+      ask one-of SRmanagers
+      [
+        set actual-generation 180
+        set energy-output-this-month actual-generation
+      ]
+    ]; between 45% to 50% level 2 restriction
+    [;less than 45%
+      ifelse ( V > (0.20 * [upper-limit] of one-of Watermanagers) )
+      [
+        print "restriction 3, in between 0.45-0.5"
+        let reduction 0.3
+        set reduction-this-month reduction
+        set ag-allocation-this-month ( 1 - reduction ) * ag-D
+        set mu-allocation-this-month (1 - reduction) * mu-D
+        set total-allocation-this-month ag-allocation-this-month + mu-allocation-this-month
+        ask one-of SRmanagers
+        [
+          set actual-generation 180
+          set energy-output-this-month actual-generation
+        ]
+      ]; between 45% and 20% level 3 restriction
+      [;less than 20%
+        print "restriction 6, all municipal allocation"
+        set mu-allocation-this-month 450 * item ticks days-in-month
+        set ag-allocation-this-month 0
+        set reduction-this-month 1
+        ifelse ( V > 0.15 * [upper-limit] of one-of Watermanagers) ; for the hydropower dam, if between 20% and 15% of V, it will decrease the generation capacity
+        [
+          ask one-of SRmanagers
+          [
+            let ratio (V / [upper-limit] of one-of Watermanagers )
+            set actual-generation (20 * ratio - 3) * generation-capacity
+            set energy-output-this-month actual-generation
+            ;need to save generation history
+          ]
+        ]
+        [
+          ask one-of SRmanagers
+          [set actual-generation 0]
+        ];below 15% failure
+      ];level 6 restriction
+    ]
+  ]
+  set total-allocation-monthly lput total-allocation-this-month total-allocation-monthly
+  set ag-allocation-monthly lput ag-allocation-this-month ag-allocation-monthly
+  set mu-allocation-monthly lput mu-allocation-this-month mu-allocation-monthly
+  set generation-history lput ([actual-generation] of one-of SRmanagers) generation-history
+  set reduction-monthly lput reduction-this-month reduction-monthly
+  update-reservoir-elevation
+;  last total-irrigation-demand-monthly
+
 
 end
+
+to scenario-two
+  let V [volume-this-month] of one-of Watermanagers
+  if V > 921000
+  [set V 921000]
+  set V-Display V
+  set V-monthly lput V V-monthly
+  print V
+  let ag-D last total-irrigation-demand-monthly + (share-other-crops-irrigation * (item ticks ag-water-use)) ;updated wine grapes irrigation demand + the rest of the water
+  ;calculate municipal demand we use average monthly city demand predrought
+  let ID item ticks individual-demand
+  print ID
+  print "individual-demand"
+  let DAY item ticks days-in-month
+  print DAY
+  print "days in a month"
+  let POP population
+    print POP
+  print "population in millions"
+  set mu-demand (ID * DAY * POP)
+  let mu-D mu-demand
+  print mu-D
+  ifelse ticks < 12
+  [
+    print "Beginning year, no restriction"
+    set ag-allocation-this-month ag-D
+    set mu-allocation-this-month mu-D
+    set total-allocation-this-month ag-allocation-this-month + mu-allocation-this-month
+    set water-price-this-month water-price
+      ask one-of SRmanagers
+      [set actual-generation 180
+    set energy-output-this-month actual-generation]
+  ]; the beginning year, no data to compare
+  [
+    let InF-this-year item ticks dam-inflow-monthly
+    let InF-last-year item (ticks - 12) dam-inflow-monthly
+    let V-normal item (month - 1) avg-V
+    set reduction-this-month 0
+    set reduction-monthly lput reduction-this-month reduction-monthly
+;    let RF-this-year  [item ticks rainfall-monthly] of Weatherman (item 0 [who] of Weathermans with [identity = "Worcester"]) + [item ticks rainfall-monthly] of Weatherman (item 0 [who] of Weathermans with [identity = "Porterville"]) + [item ticks rainfall-monthly] of Weatherman (item 0 [who] of Weathermans with [identity = "Paarl"]) + [item ticks rainfall-monthly] of Weatherman (item 0 [who] of Weathermans with [identity = "Strand"])
+;    let RF-last-year  [item ticks rainfall-monthly] of Weatherman (item 0 [who] of Weathermans with [identity = "Worcester"]) + [item ticks rainfall-monthly] of Weatherman (item 0 [who] of Weathermans with [identity = "Porterville"]) + [item ticks rainfall-monthly] of Weatherman (item 0 [who] of Weathermans with [identity = "Paarl"]) + [item ticks rainfall-monthly] of Weatherman (item 0 [who] of Weathermans with [identity = "Strand"])
+;
+;    let RF-last-year [item (ticks - 12) rainfall-monthly] of Weatherman (item 0 [who] of Weathermans with [identity = "Worcester"])
+;    ifelse InF-this-year > InF-last-year
+;    ifelse RF-this-year > RF-last-year
+    ifelse V > 0.9 * V-normal
+    [
+      print "enough water, no restriction"
+      set ag-allocation-this-month ag-D
+      set mu-allocation-this-month mu-D
+      set total-allocation-this-month ag-allocation-this-month + mu-allocation-this-month
+      set water-price-this-month water-price
+      set reduction-this-month 0
+      set reduction-monthly lput reduction-this-month reduction-monthly
+      ask one-of SRmanagers
+      [set actual-generation 180
+      set energy-output-this-month actual-generation]
+    ];no restriction
+    [
+      print "adaptive restriction"
+
+      let reduction (1 - (abs (V / V-normal)))
+      set reduction-this-month reduction
+      ;      let reduction (1 - (abs (RF-this-year / (RF-last-year) ) ) )
+      let new-price water-price - water-price * reduction / water-price-elasticity
+      set water-price-this-month new-price
+;      set water-price-history lput new-price water-price-history
+
+      set reduction-monthly lput reduction reduction-monthly
+      print reduction
+      set ag-allocation-this-month ( 1 - reduction ) * ag-D
+      set mu-allocation-this-month (1 - reduction) * mu-D
+      set total-allocation-this-month ag-allocation-this-month + mu-allocation-this-month
+
+      ifelse V > 0.2 * [upper-limit] of one-of Watermanagers
+      [
+        ask one-of SRmanagers
+        [set actual-generation 180
+        set energy-output-this-month actual-generation]
+      ];no impact on hydro
+
+      [
+        ifelse ( V > 0.15 * [upper-limit] of one-of Watermanagers) ; for the hydropower dam, if between 20% and 15% of V, it will decrease the generation capacity
+        [
+          ask one-of SRmanagers
+          [
+            let ratio (V / [upper-limit] of one-of Watermanagers )
+            set actual-generation (20 * ratio - 3) * generation-capacity
+            set energy-output-this-month actual-generation
+            ;need to save generation history
+          ]
+        ];partial generation
+
+        [
+          ask one-of SRmanagers
+          [set actual-generation 0
+          set energy-output-this-month actual-generation]
+        ];below 15% failure
+
+      ]; impact on hydro
+
+    ]
+  ]
+  set total-allocation-monthly lput total-allocation-this-month total-allocation-monthly
+  set ag-allocation-monthly lput ag-allocation-this-month ag-allocation-monthly
+  set mu-allocation-monthly lput mu-allocation-this-month mu-allocation-monthly
+  set generation-history lput ([actual-generation] of one-of SRmanagers) generation-history
+  set water-price-history lput water-price-this-month water-price-history
+
+  update-reservoir-elevation
+
+
+end
+
 
 to update-reservoir-elevation
-  let period 1   ;ten day period
+  let inflow-this-month item ticks dam-inflow-monthly
+  ask one-of Watermanagers [set volume-this-month (volume-this-month + inflow-this-month - total-allocation-this-month)]
+;  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;  ;regression apporach to calculate inflow. Not for now
+;  let R 0
+;  let T 0
+;  let MW 0
+;  Let AW 0
+;  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;  ask Weatherman (item 0 [who] of Weathermans with [identity = "Worcester"])
+;  [
+;    set R item ticks rainfall-monthly
+;    set T item ticks temp-monthly
+;    ask patches with [landtype = 5] ;for theewaterkloof
+;    [
+;      ifelse ticks < 36
+;      [
+;        set change-volume 0
+;      ]
+;      [set change-volume (17710 + 10900 * R - 2633 * T - 0.496 * MW - (2.31 * AW - 0.1668 * AW * R - 0.0337 * AW * T))
+;        set inflow change-volume + 0.496 * MW + (2.31 * AW - 0.1668 * AW * R - 0.0337 * AW * T)
+;        set volume volume + inflow
+;;      set historic-volume lput volume historic-volume
+;      ]
+;    ]
+;  ]
+;  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;  ask Weatherman (item 0 [who] of Weathermans with [identity = "Porterville"])
+;  [
+;    set R item ticks rainfall-monthly
+;    set T item ticks temp-monthly
+;    set MW item ticks municipal-water-use
+;    set AW item ticks ag-water-use
+;    ask patches with [landtype = 4] ;for Voalvlei
+;    [
+;      ifelse ticks < 36
+;      [set change-volume 0]
+;      [set change-volume (41760 + 6167 * R - 831 * T - 0.496 * MW - (2.31 * AW - 0.1668 * AW * R - 0.0337 * AW * T))
+;        set inflow change-volume + 0.496 * MW + (2.31 * AW - 0.1668 * AW * R - 0.0337 * AW * T)
+;        set volume volume + inflow
+;;      set historic-volume lput volume historic-volume
+;      ]
+;      print change-volume
+;    ]
+;  ]
+;    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;  ask Weatherman (item 0 [who] of Weathermans with [identity = "Strand"])
+;  [
+;    set R item ticks rainfall-monthly
+;    set T item ticks temp-monthly
+;    ask patches with [landtype = 6] ;for Steenbras
+;    [
+;      ifelse ticks < 36
+;      [set change-volume 0]
+;      [set change-volume (17293.39  + 1600.49 * R - 321.06 * T )
+;;        set historic-volume lput volume historic-volume
+;      ]
+;    ]
+;  ]
+;      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;  ask Weatherman (item 0 [who] of Weathermans with [identity = "Paarl"])
+;  [
+;    set R item ticks rainfall-monthly
+;    set T item ticks temp-monthly
+;    ask patches with [landtype = 3] ;for Berge River
+;    [
+;      ifelse ticks < 36
+;      [set change-volume 0]
+;      [set change-volume (43480.6  + 1481.8 * R - -707.2 * T )
+;;        set historic-volume lput volume historic-volume
+;      ]
+;    ]
+;  ]
 
-  while [period != 4]
-    [
-      ask patches with [landtype = 3]
-      [
-        set elevation random-normal 70  10;calculate the level based on rainfall and land area
-        set historic-elevation lput elevation historic-elevation
-      ]
-      set period period + 1
-    ]
+;  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
 end
+
+to recharge-reservoir
+  ; each water manager first get the volume of the reservoir, the demand, and allocate the water accordingly.
+
+end
+
 
 to irrigate-land
 ;read rainfall and temperature data from a file, each station will have a reading of that day or period say mean is Temp-3
-  let i 7 ; start with cape town
-  let Temp-list [1 2 3 4 5 6] ; just for now
-  let Rain-list [1 2 3 4 5 6] ; just for now
-  let I-index         [1 2 3 4 5 6] ; Just for now (I need to be pre-calculated) for Thronthwaite method
-  let m         [1 2 3 4 5 6] ; just for now (m need to be pre-calculated) for Thronthwaite method
-  while [i != 14] ;so it loops through all areas
+;  let i 7 ; start with cape town
+;  let Temp-list [1 2 3 4 5 6] ; just for now
+;  let Rain-list [1 2 3 4 5 6] ; just for now
+;  let I-index         [1 2 3 4 5 6] ; Just for now (I need to be pre-calculated) for Thronthwaite method
+;  let m         [1 2 3 4 5 6] ; just for now (m need to be pre-calculated) for Thronthwaite method
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;  let Rain-list []
+;  let Temp-list []
+  let SW-this-month []
+  set total-irrigation-demand-this-month 0
+;  while [i != 14] ;so it loops through all areas
+;  [
+;    ask Weatherman (item 0 [who] of turtles with [identity = "Ct-AWS"])
+;    [
+;    let Rain-list []
+;    let Temp-list []
+;      set Rain-list rainfall-monthly
+;
+;    ]
+;    ask patches with [landtype = i]
+;    [
+;;      set Temp item ( i - 7) Temp-list
+;      set Rain item ( i - 7) Rain-list
+;      print Rain
+;      print "month"
+;      print "tick"
+;;      set ET 16 * (10 * Temp / (item ( i - 7) I-index)) ^ (item ( i - 7) m )
+;;      let Water-Demand Ewater * (ET - Rain) * 100 ; say we have the grid of 100 km^2
+;    ]
+;    set i i + 1
+;  ]
+
+  ;The initial of Land, E/1 stands for Else, O/2 stand for Ocean, BR/3 stands for Berge River Reservoir, VR/4 stands for Voëlvlei
+  ;Voëlvlei Reservoir, TR/5 stands for the Theewaterkloof Reservoir, SR/6 represents Steenbras Reservoir, C/7 Stands for Cape Town,
+  ;SW/8 stands for Swartland, D/9 stands for Drakenstein, S/10 stands for Stellenbosch, B/11 stands for Breede Valley, L/12 stands for Langeberg,
+  ;W/13 stands for Witzenberg
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ask Weatherman (item 0 [who] of Weathermans with [identity = "Worcester"])
   [
-    ask patches with [landtype = i]
+        set SW-this-month item ticks SW-monthly
+
+  ]
+  ask patches with [landtype = 11] ;for breede valley
+  [
+
+    set SWD AWC - SW-this-month
+    if SWD < 0 [set SWD 0]
+    ifelse member? month [6 7 8 9]
     [
-      set Temp item ( i - 7) Temp-list
-      set Rain item ( i - 7) Rain-list
-      set ET 16 * (10 * Temp / I-index) ^ m
-      let Water-Demand Ewater * (ET - Rain) * 100 ; say we have the grid of 100 km^2
+;      print "not irrigate"
+    set irrigation-demand 0
+    ]
+    [
+;      print "irrigate"
+      set irrigation-demand SWD * 0.0254 * wine-irrigation-area * 1000 / 1000000 ; ML
     ]
   ]
+  set total-irrigation-demand-this-month [irrigation-demand] of one-of patches with [landtype = 11]
+  ask patches with [landtype = 12] ; for langeberg
+  [
+    set SWD AWC - SW-this-month
+    if SWD < 0 [set SWD 0]
+    ifelse member? month [6 7 8 9]
+    [
+;      print "not irrigate"
+      set irrigation-demand 0
+    ]
+    [
+;      print "irrigate"
+      set irrigation-demand SWD * 0.0254 * wine-irrigation-area * 1000 / 1000000 ; ML
+    ]
+  ]
+  set total-irrigation-demand-this-month total-irrigation-demand-this-month + [irrigation-demand] of one-of patches with [landtype = 12]
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ask Weatherman (item 0 [who] of Weathermans with [identity = "Porterville"])
+  [
+      set SW-this-month item ticks SW-monthly
+
+  ]
+  ask patches with [landtype = 13] ; for Witzenberg
+  [
+
+    set SWD AWC - SW-this-month
+    if SWD < 0 [set SWD 0]
+    ifelse member? month [6 7 8 9]
+    [
+;      print "not irrigate"
+      set irrigation-demand 0
+    ]
+    [
+;      print "irrigate"
+      set irrigation-demand SWD * 0.0254 * wine-irrigation-area * 1000 / 1000000 ; ML
+    ]
+  ]
+  set total-irrigation-demand-this-month total-irrigation-demand-this-month + [irrigation-demand] of one-of patches with [landtype = 13]
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ask Weatherman (item 0 [who] of Weathermans with [identity = "Malmesbury"])
+  [
+      set SW-this-month item ticks SW-monthly
+
+  ]
+  ask patches with [landtype = 8] ; for Swartland
+  [
+
+    set SWD AWC - SW-this-month
+    if SWD < 0 [set SWD 0]
+    ifelse member? month [6 7 8 9]
+    [
+;      print "not irrigate"
+      set irrigation-demand 0
+    ]
+    [
+;      print "irrigate"
+      set irrigation-demand SWD * 0.0254 * wine-irrigation-area * 1000 / 1000000 ; ML
+    ]
+  ]
+  set total-irrigation-demand-this-month total-irrigation-demand-this-month + [irrigation-demand] of one-of patches with [landtype = 8]
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ask Weatherman (item 0 [who] of Weathermans with [identity = "Paarl"])
+  [
+      set SW-this-month item ticks SW-monthly
+
+  ]
+  ask patches with [landtype = 9] ; for Drakenstein
+  [
+
+    set SWD AWC - SW-this-month
+    if SWD < 0 [set SWD 0]
+    ifelse member? month [6 7 8 9]
+    [
+;      print "not irrigate"
+      set irrigation-demand 0
+    ]
+    [
+;      print "irrigate"
+      set irrigation-demand SWD * 0.0254 * wine-irrigation-area * 1000 / 1000000 ; ML
+    ]
+  ]
+  set total-irrigation-demand-this-month total-irrigation-demand-this-month + [irrigation-demand] of one-of patches with [landtype = 9]
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ask Weatherman (item 0 [who] of Weathermans with [identity = "Ct_AWS"])
+  [
+      set SW-this-month item ticks SW-monthly
+
+  ]
+  ask patches with [landtype = 7] ; for Cape-Town
+  [
+    set SWD AWC - SW-this-month
+    if SWD < 0 [set SWD 0]
+    ifelse member? month [6 7 8 9]
+    [
+;      print "not irrigate"
+      set irrigation-demand 0
+    ]
+    [
+;      print "irrigate"
+      set irrigation-demand SWD * 0.0254 * wine-irrigation-area  * 1000 / 1000000 ; ML
+    ]
+  ]
+  set total-irrigation-demand-this-month total-irrigation-demand-this-month + [irrigation-demand] of one-of patches with [landtype = 7]
+    ask patches with [landtype = 10] ; for Stellenbosch
+  [
+    set SWD AWC - SW-this-month
+    if SWD < 0 [set SWD 0]
+    ifelse member? month [6 7 8 9]
+    [
+;      print "not irrigate"
+      set irrigation-demand 0
+    ]
+    [
+;      print "irrigate"
+      set irrigation-demand SWD * 0.0254 * wine-irrigation-area * 1000 / 1000000 ; ML
+;      print irrigation-demand
+    ]
+  ]
+  set total-irrigation-demand-this-month total-irrigation-demand-this-month + [irrigation-demand] of one-of patches with [landtype = 10]
+  set total-irrigation-demand-this-month total-irrigation-demand-this-month * Irrigation-Efficiency
+  set total-irrigation-demand-monthly lput total-irrigation-demand-this-month total-irrigation-demand-monthly
 
 end
+
 
 
 
@@ -122,6 +712,7 @@ to calculate-municipal-demand
   ;determine ideal demand under different water stress level
   ;set price based on price elasticity (ideal demand)
   ;each agent calculate its water usage at each month
+  set total-municipal-demand-this-month [CP-water-demand] of one-of CPers * [population] of one-of CPers
 
 end
 
@@ -139,6 +730,109 @@ to calculate-priority
   ;water price compare to original price percentage (historical price with no stress adjust for inflation)
 end
 
+to load-rain-temp-history
+  let station-name []
+  set station-name ["Cape_Point" "Cape_Town" "Ct_AWS" "Excelsior_Ceres" "Malmesbury" "Molteno_Reservoir" "Paarl"
+                    "Porterville" "Robbeneiland" "Slangkop" "Strand" "Worcester"]
+  file-open "rainfall_history.txt"
+;  file-open "palmer.txt"
+  let j 0
+  while [not file-at-end?]
+  [
+    let i 1
+    let rain-history []
+    let next-X file-read
+    let next-Y file-read
+ ; one approach to read file by lines
+;    print item 1 file-read-characters
+;    set rain-history lput file-read-line rain-history
+
+;the other approach to read file one by one
+    while [ i < 121 ]
+    [
+      let rain-i file-read
+      set rain-history lput rain-i rain-history
+
+      set i (i + 1)
+;    print i
+    ]
+;    print rain-history
+    create-Weathermans 1
+    [
+      set color black
+      set shape "flag"
+      set size 1
+      set identity item j station-name
+;      print identity
+      setxy next-X next-Y
+      set rainfall-monthly rain-history
+
+    ]
+    set j (j + 1)
+  ]
+  file-close
+
+  file-open "temperature_history.txt"
+  while [not file-at-end?]
+  [
+    let i 1
+    let temp-history []
+    let next-X file-read
+    let next-Y file-read
+ ; one approach to read file by lines
+;    print item 1 file-read-characters
+;    set rain-history lput file-read-line rain-history
+
+;the other approach to read file one by one
+    while [ i < 121]
+    [
+      let temp-i file-read
+      set temp-history lput temp-i temp-history
+
+      set i (i + 1)
+;    print i
+    ]
+;    print rain-history
+    ask Weathermans-on patch next-X next-Y
+    [
+      set temp-monthly temp-history
+    ]
+  ]
+
+  file-close
+
+  file-open "SW_history.txt"
+  while [not file-at-end?]
+  [
+    let i 1
+    let SW-history []
+    let next-X file-read
+    let next-Y file-read
+ ; one approach to read file by lines
+;    print item 1 file-read-characters
+;    set rain-history lput file-read-line rain-history
+
+;the other approach to read file one by one
+    while [ i < 121]
+    [
+      let SW-i file-read
+      set SW-history lput SW-i SW-history
+
+      set i (i + 1)
+;    print i
+    ]
+;    print rain-history
+    ask Weathermans-on patch next-X next-Y
+    [
+      set SW-monthly SW-history
+    ]
+  ]
+
+  file-close
+
+end
+
+
 
 
 to build-territory
@@ -152,7 +846,8 @@ to build-territory
   ]
   file-close
 
-
+;BR/3 stands for Berge River Reservoir, VR/4 stands for Voëlvlei
+;Voëlvlei Reservoir, TR/5 stands for the Theewaterkloof Reservoir, SR/6 represents Steenbras Reservoir
 ask patches
       [
         ifelse  landtype = 1 ; out of scope Else
@@ -167,69 +862,90 @@ ask patches
         [;do nothing
         ]
 
-        ifelse  landtype = 3; reservoir
+        ifelse  landtype = 3; reservoir Berge River
         [set pcolor 85; light blue
-         set elevation 100
+            set capacity 130010
+            set volume 115930
         ]
         [;do nothing
         ]
 
-        ifelse  landtype = 4; reservoir
+        ifelse  landtype = 4; reservoir Voelvlei
         [set pcolor 85; light blue
+            set capacity 164095
+            set volume 124100
         ]
         [;do nothing
         ]
 
-        ifelse  landtype = 5; reservoir
+        ifelse  landtype = 5; reservoir theewaterkloof
         [set pcolor 85; light blue
+            set capacity 480188
+            set volume 357963
         ]
         [;do nothing
         ]
 
-        ifelse  landtype = 6; reservoir
+        ifelse  landtype = 6; reservoir Steenbras Reservoir
         [set pcolor 85; light blue
+            set capacity 65284
+            set volume 53169
         ]
         [;do nothing
         ]
 
         ifelse  landtype = 7; Cape Town
         [set pcolor 65; light green
+            set wine-irrigation-area 5765 * 10000 ; m^2
+            set AWC 2.36 ; inch
         ]
         [;do nothing
         ]
 
         ifelse  landtype = 8; Swartland
         [set pcolor 27; yellow
+            set wine-irrigation-area 13560
+            set AWC 2.76
         ]
         [;do nothing
         ]
 
         ifelse  landtype = 9; Drakenstein
         [set pcolor orange
+            set wine-irrigation-area 15461
+            set AWC 2.76
         ]
         [;do nothing
         ]
 
         ifelse  landtype = 10; Stellenbosch
         [set pcolor 26
+            set wine-irrigation-area 16286
+            set AWC 2.76
         ]
         [;do nothing
         ]
 
         ifelse  landtype = 11; Breede Valley
         [set pcolor 16
+            set wine-irrigation-area 17199
+            set AWC 2.76
         ]
         [;do nothing
         ]
 
         ifelse  landtype = 12; Langeberg
         [set pcolor 15
+            set wine-irrigation-area 16662
+            set AWC 2.76
         ]
         [;do nothing
         ]
 
         ifelse  landtype = 13; Witzenberg
         [set pcolor 14
+            set wine-irrigation-area 5510
+            set AWC 2.76
         ]
         [;do nothing
         ]
@@ -247,11 +963,77 @@ end
 
 to initialize-agents
 
- create-CPers 1
+  create-BRmanagers 1
+  [
+    set color yellow
+    set size 1
+    move-to one-of patches with [landtype = 3]
+  ]
+
+  create-VRmanagers 1
+  [
+    set color yellow
+    set size 1
+    move-to one-of patches with [landtype = 4]
+  ]
+
+    create-TRmanagers 1
+  [
+    set color yellow
+    set size 1
+    move-to one-of patches with [landtype = 5]
+  ]
+
+    create-SRmanagers 1
+  [
+    set color yellow
+    set size 1
+    move-to one-of patches with [landtype = 6]
+  ]
+
+  create-CPers 1
   [
     set color black
     move-to one-of patches with [landtype = 7]
   ]
+
+  create-SWfarmers 1
+  [
+    set color black
+    move-to one-of patches with [landtype = 8]
+  ]
+
+  create-Dfarmers 1
+  [
+    set color black
+    move-to one-of patches with [landtype = 9]
+  ]
+
+  create-STfarmers 1
+  [
+    set color black
+    move-to one-of patches with [landtype = 10]
+  ]
+
+  create-BVfarmers 1
+  [
+    set color black
+    move-to one-of patches with [landtype = 11]
+  ]
+
+  create-Lfarmers 1
+  [
+    set color black
+    move-to one-of patches with [landtype = 12]
+  ]
+
+  create-Wfarmers 1
+  [
+    set color black
+    move-to one-of patches with [landtype = 13]
+  ]
+
+
 end
 
 @#$#@#$#@
@@ -283,10 +1065,10 @@ ticks
 30.0
 
 BUTTON
-14
-18
-80
-51
+12
+10
+78
+43
 NIL
 setup
 NIL
@@ -300,10 +1082,10 @@ NIL
 1
 
 BUTTON
-16
-68
-80
-102
+12
+46
+78
+79
 NIL
 go
 T
@@ -316,29 +1098,11 @@ NIL
 NIL
 1
 
-PLOT
-66
-686
-266
-836
-SDL level
-Level
-Frequency
-0.0
-100.0
-0.0
-3000.0
-true
-false
-"" ""
-PENS
-"pen-0" 1.0 1 -7500403 true "" "histogram [historic-elevation] of patch 15 -17\n"
-
 BUTTON
-31
-122
-95
-156
+12
+82
+78
+116
 NIL
 stop
 NIL
@@ -356,7 +1120,7 @@ PLOT
 536
 266
 686
-SDU level
+DAM level
 Month
 Level
 0.0
@@ -367,61 +1131,7 @@ true
 false
 "" ""
 PENS
-"default" 1.0 0 -16777216 true "" "plot count turtles"
-
-PLOT
-465
-536
-665
-686
-Voalvlei Level
-NIL
-NIL
-0.0
-10.0
-0.0
-10.0
-true
-false
-"" ""
-PENS
-"default" 1.0 0 -16777216 true "" "plot count turtles"
-
-PLOT
-664
-536
-864
-686
-Theewaterskloof Level
-Month
-Level
-0.0
-10.0
-0.0
-10.0
-true
-false
-"" ""
-PENS
-"default" 1.0 0 -16777216 true "" "plot count turtles"
-
-PLOT
-265
-536
-465
-686
-Berg Level
-NIL
-NIL
-0.0
-10.0
-0.0
-10.0
-true
-false
-"" ""
-PENS
-"default" 1.0 0 -16777216 true "" "plot count turtles"
+"default" 1.0 0 -16777216 true "" "plot V-Display"
 
 PLOT
 660
@@ -439,14 +1149,14 @@ true
 false
 "" ""
 PENS
-"default" 1.0 0 -16777216 true "" "plot count turtles"
+"default" 1.0 0 -16777216 true "" "plot [actual-generation] of one-of SRmanagers"
 
 PLOT
 660
 160
 860
 310
-Grape Production
+Ag water demand
 Month
 Production
 0.0
@@ -457,7 +1167,7 @@ true
 false
 "" ""
 PENS
-"default" 1.0 0 -16777216 true "" "plot count turtles"
+"default" 1.0 0 -16777216 true "" "plot ag-allocation-this-month"
 
 PLOT
 861
@@ -475,7 +1185,7 @@ true
 false
 "" ""
 PENS
-"default" 1.0 0 -16777216 true "" "plot count turtles"
+"default" 1.0 0 -16777216 true "" "plot mu-allocation-this-month"
 
 PLOT
 861
@@ -493,7 +1203,156 @@ true
 false
 "" ""
 PENS
-"default" 1.0 0 -16777216 true "" "plot count turtles"
+"default" 1.0 0 -16777216 true "" "plot population"
+
+BUTTON
+11
+119
+189
+152
+NIL
+load-rain-temp-history
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+MONITOR
+876
+544
+1019
+589
+Irrigation Demand (ML)
+item (ticks - 1 ) total-irrigation-demand-monthly
+17
+1
+11
+
+INPUTBOX
+3
+200
+152
+260
+water-price-elasticity
+-0.3
+1
+0
+Number
+
+SWITCH
+3
+447
+134
+480
+Scenario-1?
+Scenario-1?
+0
+1
+-1000
+
+MONITOR
+876
+591
+1019
+636
+Total Allocation (ML)
+item (ticks - 1) total-allocation-monthly
+17
+1
+11
+
+MONITOR
+876
+638
+1019
+683
+Ag Allocation (ML)
+item (ticks - 1) ag-allocation-monthly
+17
+1
+11
+
+MONITOR
+876
+685
+1019
+730
+Municipal Allocation (ML)
+item (ticks - 1) mu-allocation-monthly
+17
+1
+11
+
+MONITOR
+876
+732
+1019
+777
+Total Volume (ML)
+item (ticks - 1 ) V-monthly
+17
+1
+11
+
+MONITOR
+876
+779
+1019
+824
+NIL
+mu-demand
+17
+1
+11
+
+INPUTBOX
+3
+261
+152
+321
+share-other-crops-irrigation
+0.57
+1
+0
+Number
+
+INPUTBOX
+3
+323
+152
+383
+water-price
+5.2
+1
+0
+Number
+
+MONITOR
+876
+826
+1020
+871
+NIL
+last water-price-history
+17
+1
+11
+
+INPUTBOX
+3
+385
+152
+445
+Irrigation-Efficiency
+1.5
+1
+0
+Number
 
 @#$#@#$#@
 # Purpose
@@ -924,6 +1783,83 @@ NetLogo 6.0.2
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
+<experiments>
+  <experiment name="scenario 2 price elasticity" repetitions="1" runMetricsEveryStep="true">
+    <setup>setup
+load-rain-temp-history</setup>
+    <go>go</go>
+    <metric>reduction-this-month</metric>
+    <metric>energy-output-this-month</metric>
+    <metric>water-price-this-month</metric>
+    <metric>ag-allocation-this-month</metric>
+    <metric>mu-allocation-this-month</metric>
+    <metric>total-allocation-this-month</metric>
+    <metric>V-display</metric>
+    <metric>population</metric>
+    <enumeratedValueSet variable="water-price-elasticity">
+      <value value="-0.1"/>
+      <value value="-0.2"/>
+      <value value="-0.3"/>
+      <value value="-0.4"/>
+      <value value="-0.51"/>
+      <value value="-0.6"/>
+      <value value="-0.7"/>
+      <value value="-0.8"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="scenario 1 efficiency" repetitions="1" runMetricsEveryStep="true">
+    <setup>setup
+load-rain-temp-history</setup>
+    <go>go</go>
+    <metric>reduction-this-month</metric>
+    <metric>energy-output-this-month</metric>
+    <metric>water-price-this-month</metric>
+    <metric>ag-allocation-this-month</metric>
+    <metric>mu-allocation-this-month</metric>
+    <metric>total-allocation-this-month</metric>
+    <metric>V-display</metric>
+    <metric>population</metric>
+    <steppedValueSet variable="Irrigation-Efficiency" first="1" step="0.1" last="2"/>
+    <enumeratedValueSet variable="Scenario-1?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="water-price-elasticity">
+      <value value="-0.3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="share-other-crops-irrigation">
+      <value value="0.57"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="water-price">
+      <value value="5.2"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="scenario 1 share" repetitions="1" runMetricsEveryStep="true">
+    <setup>setup
+load-rain-temp-history</setup>
+    <go>go</go>
+    <metric>reduction-this-month</metric>
+    <metric>energy-output-this-month</metric>
+    <metric>water-price-this-month</metric>
+    <metric>ag-allocation-this-month</metric>
+    <metric>mu-allocation-this-month</metric>
+    <metric>total-allocation-this-month</metric>
+    <metric>V-display</metric>
+    <metric>population</metric>
+    <enumeratedValueSet variable="Irrigation-Efficiency">
+      <value value="1.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="Scenario-1?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="water-price-elasticity">
+      <value value="-0.3"/>
+    </enumeratedValueSet>
+    <steppedValueSet variable="share-other-crops-irrigation" first="0.57" step="0.02" last="0.69"/>
+    <enumeratedValueSet variable="water-price">
+      <value value="5.2"/>
+    </enumeratedValueSet>
+  </experiment>
+</experiments>
 @#$#@#$#@
 @#$#@#$#@
 default
