@@ -36,6 +36,7 @@ globals
   avg-V
   water-price-this-month
   water-price-history
+  Kc-monthly
 ]
 
 breed [BRmanagers BRmanager]
@@ -185,6 +186,7 @@ to setup
 
   set days-in-month [31 28 31 30 31 30 31 31 30 31 30 31 31 28 31 30 31 30 31 31 30 31 30 31 31 28 31 30 31 30 31 31 30 31 30 31 31 29 31 30 31 30 31 31 30 31 30 31 31 28 31 30 31 30 31 31 30 31 30 31 31 28 31 30 31 30 31 31 30 31 30 31 31 28 31 30 31 30 31 31 30 31 30 31 31 29 31 30 31 30 31 31 30 31 30 31 31 28 31 30 31 30 31 31 30 31 30 31 31 28 31 30 31 30 31 31 30 31 30 31]
   set avg-V [730842.3 661785.3 594616.5 575904.7 584171.5 702642.2 796237.2 853529.7 875358.8 867419.3 848132.5 789934.5]
+  set Kc-monthly [0.5 0.3 0.2 0.1 0.1 0 0 0 0 0.1 0.2 0.4]
 ;  load-rain-temp-history
 end
 
@@ -693,7 +695,8 @@ to irrigate-land
     ]
   ]
   set total-irrigation-demand-this-month total-irrigation-demand-this-month + [irrigation-demand] of one-of patches with [landtype = 10]
-  set total-irrigation-demand-this-month total-irrigation-demand-this-month * Irrigation-Efficiency
+  set total-irrigation-demand-this-month total-irrigation-demand-this-month * Irrigation-Efficiency * item (month - 1) Kc-monthly * 0.7
+;  set total-irrigation-demand-this-month total-irrigation-demand-this-month * Irrigation-Efficiency * Kc
   set total-irrigation-demand-monthly lput total-irrigation-demand-this-month total-irrigation-demand-monthly
 
 end
@@ -904,7 +907,7 @@ ask patches
 
         ifelse  landtype = 8; Swartland
         [set pcolor 27; yellow
-            set wine-irrigation-area 13560
+            set wine-irrigation-area 13560 * 10000
             set AWC 2.76
         ]
         [;do nothing
@@ -912,7 +915,7 @@ ask patches
 
         ifelse  landtype = 9; Drakenstein
         [set pcolor orange
-            set wine-irrigation-area 15461
+            set wine-irrigation-area 15461 * 10000
             set AWC 2.76
         ]
         [;do nothing
@@ -920,7 +923,7 @@ ask patches
 
         ifelse  landtype = 10; Stellenbosch
         [set pcolor 26
-            set wine-irrigation-area 16286
+            set wine-irrigation-area 16286 * 10000
             set AWC 2.76
         ]
         [;do nothing
@@ -928,7 +931,7 @@ ask patches
 
         ifelse  landtype = 11; Breede Valley
         [set pcolor 16
-            set wine-irrigation-area 17199
+            set wine-irrigation-area 17199 * 10000
             set AWC 2.76
         ]
         [;do nothing
@@ -936,7 +939,7 @@ ask patches
 
         ifelse  landtype = 12; Langeberg
         [set pcolor 15
-            set wine-irrigation-area 16662
+            set wine-irrigation-area 16662 * 10000
             set AWC 2.76
         ]
         [;do nothing
@@ -944,7 +947,7 @@ ask patches
 
         ifelse  landtype = 13; Witzenberg
         [set pcolor 14
-            set wine-irrigation-area 5510
+            set wine-irrigation-area 5510 * 10000
             set AWC 2.76
         ]
         [;do nothing
@@ -1116,10 +1119,10 @@ NIL
 1
 
 PLOT
-66
-536
-266
-686
+297
+491
+497
+641
 DAM level
 Month
 Level
@@ -1245,13 +1248,13 @@ water-price-elasticity
 Number
 
 SWITCH
-3
-447
-134
-480
+9
+524
+140
+557
 Scenario-1?
 Scenario-1?
-0
+1
 1
 -1000
 
@@ -1349,7 +1352,18 @@ INPUTBOX
 152
 445
 Irrigation-Efficiency
-1.5
+0.7
+1
+0
+Number
+
+INPUTBOX
+4
+446
+153
+506
+Kc
+0.2
 1
 0
 Number
