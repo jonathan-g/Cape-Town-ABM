@@ -69,8 +69,8 @@ Watermanagers-own
   volume-this-month
   upper-limit
 ;  ag-allocation
-  city-allocation
-  SR-allocation
+;  city-allocation
+;  SR-allocation
 ]
 
 
@@ -97,23 +97,21 @@ CPers-own
 
 patches-own
 [
-  behaviour    ;behaviour I am expressing
-  agent-who    ;who of turtle I belong to
-  patch-yield  ;as for turtle variable 'yield' - in some setup instances the agent gets their yield value from their homestead patch
+;  behaviour    ;behaviour I am expressing
+;  agent-who    ;who of turtle I belong to
+;  patch-yield  ;as for turtle variable 'yield' - in some setup instances the agent gets their yield value from their homestead patch
   landtype ;The initial of Land, E/1 stands for Else, O/2 stand for Ocean, BR/3 stands for Berge River Reservoir, VR/4 stands for Voëlvlei
            ;Voëlvlei Reservoir, TR/5 stands for the Theewaterkloof Reservoir, SR/6 represents Steenbras Reservoir, C/7 Stands for Cape Town,
            ;SW/8 stands for Swartland, D/9 stands for Drakenstein, S/10 stands for Stellenbosch, B/11 stands for Breede Valley, L/12 stands for Langeberg,
            ;W/13 stands for Witzenberg
-  elevation
-  change-volume
+;  elevation
+;  change-volume
   capacity
   volume
   inflow
-  historic-elevation  ;Storing historic evelation level at 10 day basis
-  historic-volume
-  Temp     ;Temperature daily temperature
-  Rain     ;Rainfall daily rainfall
-  ET       ;Evapotranspiration
+;  Temp     ;Temperature daily temperature
+;  Rain     ;Rainfall daily rainfall
+;  ET       ;Evapotranspiration
   production;
   wine-irrigation-area
   AWC      ;Available water content
@@ -134,7 +132,6 @@ to setup
   set year 2009
   set mean-yield-his []
   set mean-wealth-his []
-  initialize-patch
   set total-irrigation-demand-monthly []
   set total-allocation-monthly []
   set ag-allocation-monthly []
@@ -703,13 +700,6 @@ end
 
 
 
-
-to generate-power
-  let power [elevation] of patches with [landtype = 6] / max-elevation * 180 ;unit in mega watts
-end
-
-
-
 to calculate-municipal-demand
   ;get water stress level
   ;determine ideal demand under different water stress level
@@ -956,13 +946,7 @@ ask patches
   ]
 end
 
-to initialize-patch
-  ask patches
-  [
-    set elevation random-normal 80 10
-    set historic-elevation []
-  ]
-end
+
 
 to initialize-agents
 
@@ -1038,7 +1022,6 @@ to initialize-agents
 
 
 end
-
 @#$#@#$#@
 GRAPHICS-WINDOW
 210
@@ -1242,7 +1225,7 @@ INPUTBOX
 152
 260
 water-price-elasticity
--0.3
+-0.51
 1
 0
 Number
@@ -1370,13 +1353,12 @@ Number
 
 @#$#@#$#@
 # Purpose
-We want to test if the collaboration among agriculture, energy sector, and municipal sector will ease the water shortage and improve FEW system output in general. Specifically, we want to simulate the system outputs under two policy scenarios:
+We build this ABM close to the reality of the stakeholders from the municipal, water, energy (hydropower), and food sector, so we have a test bed to simulate and compare the FEW system outcomes under various policy scenarios. We test two policy scenarios:
+1.	Business-as-usual (baseline): no joint-management or minimal communication between the departments of Energy, Water, and Food (agriculture). The tariffs of water and threshold levels of dam storage for restrictions used in this scenario are from the city of Cape Town;
 
-1.	Business as usual: no communication or minimal communication between Department of Energy, Water, and Food (agriculture).
+2.	Holistic-adaptive-management: allocate water resources across FEW sectors to satisfy the municipal demand, similarly for hydropower generation, and agricultural production. This scenario also Incorporate some basic climate adaption strategies and adjusting water demand using water price elasticity of demand theory to manage water shortage.
 
-2.	Collaborative work, allocate water resources across FEW sectors to maximize people’s demand, similarly for energy resources, and financial resources. Incorporating weather forecast and plan based on probability (reduce demand by sector, adjust tariff, financial sustainability, and infrastructure development such as allocating budget to expand capacity, etc. to meet demand or provide less restriction by optimize the existing management practices.)
-
-Previous years, there was no communication between sectors, sector resources users demand goes up, climate change variations lead to supply shortage. What if there are communications and collaborations on allocating water and other resources across all end user sectors, since 2015, could the system performance (in terms of agriculture product, water demand be meet, energy production be stabilized) be better? Can CCT avoids sacrifice on any sectors?  
+Specifically, we use the scenario 1 to calibrate and set up the baseline to match the actual patterns of the system outcomes (i.e., dam storage levels, water use) under the existing management policies. Whereas scenario 2, we propose a new holistic management strategy to optimize the outcomes of water, energy, and food sector.
 
 We also want to compare the modeling results of different policy scenarios for a range of future climate scenarios. 
 
@@ -1384,108 +1366,98 @@ We also want to compare the modeling results of different policy scenarios for a
 
 There are five types of agents represented in this model:
 
-1.	Governor (overall policy maker)
-Overall Financial Budget, Priorities, Approval Rate
+1.	Water Manager (Western Cape Department of Water Services)
+Allocation for each of the water user agent, total dam storage of this month, total storage capacity
 
-2.	Water Manager (Western Cape Department of Water Services)
-Allocation for each of the water user agent, collaboration, water budget, water tariff, restrictions. 
+2.	Energy Manager
+maximum Capacity, actual apacity of this month
 
-3.	Energy Manager
-Water Demand, Allocation, Hydro Energy Generation, Hydropower System Capacity, Priority
 
-4.	Farmers
-Water Demand, Allocation, Crop Area, Crop production, Crop type, Rating, Priority
+3.	Farmers
+water demand, rainfall, temperature, soil moisture deficit and available water content of the month, Irrigation Area
 
-5.	Citizens
-Water Demand, Allocation, Population, Rating, Priority
 
-6.	Commercial Users
-Water Demand, Rating
+4.	Citizens
+water demand, population, population growth rate
 
-The scale for the model is the city of cape town and the wine grape crop fields in Cape Wineland. The model is simulating from 2014-1-1 to 2019-1-1 for the retrofit of historic run. The time step is daily, but the time step for each agent and its sub-model may vary. (Placeholder for the granulation for the spatial aspect.)
+The scale for the model is the city of cape town and the wine grape crop fields in Cape Wineland. The model is simulating from 2009-1 to 2018-12 for the retrofit of historic run. The time step is monthly.
 
 # Process Overview and scheduling
 
-At the beginning of each year, the governor make the decisions of the priorities of allocating resources based on the rating from each sector. 
+The model simulates a ten-year monthly run from January 2009 to December 2018 for each of the policy scenarios at the monthly scale. The general inputs of the model include initial dam storage, monthly water inflow, monthly water demand by sectors, and water price and its price elasticity of demand (CSAG2019;  Sahin  et  al.  2016;  DWS  2018).  At the beginning of each month or tick in the model, the water manager asks the demand of each stakeholder and the check the dam level before allocation, then depends on the scenarios, the allocation for each sector is calculated accordingly. At the end of each month or tick, the dam storage is updated based on the current allocation and the inflow.
 
-The priorities then assigned to the water manager. Water managers monitors the reservoir levels and weather information. 
+In Scenario 1, we use the restrictions set up by the city of Cape Town from 2015 to 2018. There are various levels of restrictions imposed on the study region. However, the major water use reductions occur at level 2, level 3, and level 6b, where 20\% municipal demand reduction, 30\% municipal demand reduction, and a strict 450 MLD municipal use restriction with zero agricultural water allocation are triggered when the total dam storage level is lower than 50\%, 45\%, and 20\%, respectively.
 
-The reservoirs are represented by the patches. Reservoir levels updated by the rainfall/runoff equations (Berglund, 2015). Each reservoir has specific precipitation data. 
-
-Every other agent rather than water manager and the mayor will report their water demand to the water manager on a monthly basis. 
-
-Water managers makes water use restrictions based on the dam storage level, demand, and the priority monthly. The water manager will distribute the water to the users based on their priority levels determined by the Governor. 
-
-The energy manager, citizens, commercial users and farmers update their state variables in their sub-models. 
-
-The process will repeat at the beginning of each year, where governor will update the priorities based on the updated ratings from the stakeholders. 
-
+The scenario 2 takes a simple adaptive approach on imposing water use restrictions, where for each month or tick, the water manager compares the current dam storage level with the pre-drought (2009 to 2015) monthly average of dam storage level of this month. If the current dam storage level is greater than 90\% of the average, the water manager will not impose any restrictions and all stakeholders acquired their demanded water since it is in the normal range of variation. When the current dam storage level is lower than the threshold, the reduction of this month is simply the ratio of (Vavg - Vcurrent)/ Vavg. In addition, we use water price elasticity of demand so we can adjust the water price to reduce the demand to the targeted level.
+After the storage has been updated, the tick advances and the loop continues until the end of tick 120 or 2018-12. 
 # Design Concepts
 
 ## Emergence
 
-More population may emerge over time. More infrastructure may develop over time. Climate change and associated parameters change will be shown in the model.  
+Population is growing over time at an annual rate of 0.8%. 
 
 ## Adaptation
-The demand may vary based on the climate of that year, so is policy. The governor will adapt to the ratings of the stakeholders. The water manager will adapt to the priorities by the governor. The other water users will adapt to the restrictions, price tariffs, and allocations. 
+In Scenario 2, the adpation is the simple reduction if the storage level is lower than the threshold. 
 
 ## Objectives
-Managers are trying to meet demand. Mayor wants high approval rate. Citizens and commercial users wants to enough supply and lower price tariff. The Energy managers wants to maximize the hydropower generation. The farmers want to meet their irrigation demand. 
+The objective of the ABM is to optimizing the system outcomes for all the stakeholders in the model. 
 
 ## Learning
 No learning if we don’t include weather forecast?  Farmers will learn to save water by use weather information.
 
 
 ## Prediction
-Weather prediction for next year’s policy? The agents are trying to learn or predict the weather of next year (see Ethan Yang’s paper)
+Currently there is no prediction, but it is within the scope of phase 2 of this project.
 
 
 ## Sensing
-Water managers can sense the water level of the reservoir patches. Farmers can sense their water budget. Governor can sense the ratings from the stakeholders. 
+Water managers can sense the dam storage level. Farmers can sense the rain and the temperature, and therefore the soil moisture.
 
 ## Interaction
-Interactions between mayor and FEW managers, between mayors and all others by ratings and policy priority, between water managers and citizens and commercial users, and between water managers and EF sectors.
+Interactions is between the managers and the stakeholders through the demand and allocation.
 
 
 ## Stochasticity
-The future weather conditions is going to be a stochastic model. Potential extreme weather events. The water demand of wards are randomly assigned followed by a normal distribution. 
+In the future of phase 2, the future weather conditions is going to be a stochastic model. Potential extreme weather events. The stakeholders, instead of the current homogeneous state, will be diversified stochastically.
 
 
 ## Collectives
-Ratings, Energy generation, Water delivered and water demand, Crop production and area.
+Rain, Temperature, soil moisture deficit, water price, Energy generation, Water demand and allocation of each stakeholders.
 
 
 ## Observation
-Crop area, Temperature, Dam level, Precipitation.
+Soil Moisture, temperature, dam storage level, porecipitation, water price.
 
 
 ## Initialization
-The governor will start with priority of 100% for each of the stakeholders, since (assume) 2014 is a wet year. The rating of each stakeholder will begin with 10/10. 
+The water manager will start with the upper limit of 920000 ML, and the actual storage volume at the end of 2008.
 
-*  The water demand of household: (indoor demand goes up when outside temp goes up) 
-
-*  The water demand of commercial users:
-
-*  The water demand of energy manager:
-
-*  The water demand of farmers:
 
 # Input data
 
-Historic weather information.
+Historic weather and inflow information. Unrestricted water demand. The soil moisture deficit was and input calculated using the tool developed by Jacobi et. al. (2013).
 
 # Submodels
+## Urban Demand Submodel
+Capetonians and their urban demand is represented by a single agent, CPers. For simplicity, we aggregated the residential, commercial, and other miscellaneous water demand all together and averaged to individual urban water demand. The Cpers has 3.875 million people at the beginning of 2009 with an annual growth rate of 0.8%. In the city of Cape Town, the unrestricted individual urban water demand is calculated based on the monthly average of the urban water usage between 2009 to 2015 (CASG 2019). In all policy scenarios, the real municipal water allocation of the month is calculated using equation:
 
-## Agriculture model 
-Water budget balance model: (precompute the data based on historic data, move forward, the sub model can be looped in a daily basis) Netlogo: levelspace Cory Grady
-  Water Demand=E_(water-use)*(ET-P)*A
+Urban Allocation = Populationi * Urban Demand * (1 - Reduction)
 
-Where Ewater is the water use efficiency, ET is the evapotranspiration of the specific crop, P is the precipitation depth, and A is the area of the crop field. 
+where $Populationi$ is the population of the year of this month, i. 
 
-## Water manager, Citizen, and commerce 
-Price-elasticity model: how water managers set water tariff to balance demand. Later: Also build in vary in temperature. Salvo Nature communications. 
-## Energy Manager 
-Linear model: Power = actual water/water demand * capacity
+
+## Agriculture Submodel 
+In the agricultural sub-model, the irrigation demand is calculated using the soil moisture deficit (SMD), where SMD is calculated by a simple water balance approach. We adopted the Palmer Drought Index calculating tool developed by (Jacobi 2013), which the monthly potential evapotranspiration (PET) and soil moisture content (SMC) are calculated by Thronthwaite method and by the water balance, respectively. It is a useful tool that provides relatively accurate results which have been used in agricultural research to assess drought and soil moisture (Gunda 2016,Nawagamuwa 2018). We estimated the AWC for each of the wine regions from the AWC map of the region (Schulze and Horan 2007), and the SMD was calculated by this tool using the monthly rainfall and temperature data from the closest weather station. 
+
+In this study, we specifically focused on the irrigation of the vineyards. On average, the share of irrigation for non-wine crops is 57 % (Western Cape Government 2015). In the model, we fix the 57% of the total agricultural water usage for the non-wine crops, because those crops are mainly located outside of our study region. We only manage the water allocation of the wine grapes in this model. The irrigation of the wine grapes is calculated using equation: 
+
+Demand of wine = SWDm * Area * KCm * Efwine
+
+where SWDm is the soil moisture deficit of this month, Area is the irrigation area of each wine region, KCm is the Crop Coefficient of wine grapes of this month, and Efwine is the irrigation efficiency of the vineyard (WSU 2016). We calibrate the model parameters under scenario 1 to match the historical patterns. The calibrated model parameters are carried on and used in scenario 2 as well.  
+
+## Hydropower Submodel
+In the Big Six dam system, only Steenbras upper Dam is a pump-storage hydropower dam. To maintain the maximum generation capacity, the Steenbras Upper Dam needs to keep at full level (DWS 2018). The Steenbras Upper and Lower Dams operate together, where the lower dam pumps the water to the upper dam during off-peak hours, and the upper dam releases water during the peak hours that provide up to 180 mega watts (MW) to offload the pressure from the electricity grid. The storage capacities of the Steenbras Upper and Lower dams are similar, and the combinded storage accounts for 10% of the total capacity. The water supply system in Western Province cannot release water when the dam storage level is below 10% of the total capacity. Thus, we assume that if the total dam storage level is above 20% of the total dam storage capacity, the Steenbras Upper Dam can remain at full storage, and so is the maximum generation capacity. When the total dam storage level is lower than 15% of the total dam storage capacity, the water withheld in the Steenbras Upper dam will be released for the municipal water use, and no hydropower can be generated. In between 15% and 20% of the total dam storage, we assume the hydropower generation capacity decreases linearly.
+
  
 @#$#@#$#@
 default
@@ -1820,6 +1792,21 @@ load-rain-temp-history</setup>
       <value value="-0.7"/>
       <value value="-0.8"/>
     </enumeratedValueSet>
+    <enumeratedValueSet variable="Irrigation-Efficiency">
+      <value value="0.7"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="Scenario-1?">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="Kc">
+      <value value="0.2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="share-other-crops-irrigation">
+      <value value="0.57"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="water-price">
+      <value value="5.2"/>
+    </enumeratedValueSet>
   </experiment>
   <experiment name="scenario 1 efficiency" repetitions="1" runMetricsEveryStep="true">
     <setup>setup
@@ -1833,18 +1820,21 @@ load-rain-temp-history</setup>
     <metric>total-allocation-this-month</metric>
     <metric>V-display</metric>
     <metric>population</metric>
-    <steppedValueSet variable="Irrigation-Efficiency" first="1" step="0.1" last="2"/>
+    <steppedValueSet variable="Irrigation-Efficiency" first="0.6" step="0.01" last="0.7"/>
     <enumeratedValueSet variable="Scenario-1?">
       <value value="true"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="water-price-elasticity">
-      <value value="-0.3"/>
+      <value value="-0.51"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="share-other-crops-irrigation">
       <value value="0.57"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="water-price">
       <value value="5.2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="Kc">
+      <value value="0.2"/>
     </enumeratedValueSet>
   </experiment>
   <experiment name="scenario 1 share" repetitions="1" runMetricsEveryStep="true">
@@ -1860,7 +1850,7 @@ load-rain-temp-history</setup>
     <metric>V-display</metric>
     <metric>population</metric>
     <enumeratedValueSet variable="Irrigation-Efficiency">
-      <value value="1.5"/>
+      <value value="0.7"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="Scenario-1?">
       <value value="true"/>
@@ -1871,6 +1861,9 @@ load-rain-temp-history</setup>
     <steppedValueSet variable="share-other-crops-irrigation" first="0.57" step="0.02" last="0.69"/>
     <enumeratedValueSet variable="water-price">
       <value value="5.2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="Kc">
+      <value value="0.2"/>
     </enumeratedValueSet>
   </experiment>
 </experiments>
