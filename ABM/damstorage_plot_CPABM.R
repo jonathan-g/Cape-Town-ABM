@@ -2,7 +2,8 @@
 library(tidyverse)
 library(lubridate)
 library(janitor)
-library(cairo)
+library(Cairo)
+library(cowplot)
 
 df = read_csv("Monthly_urban_agriculture_water_use.csv") %>%
   clean_names() %>%
@@ -13,7 +14,7 @@ df = read_csv("Monthly_urban_agriculture_water_use.csv") %>%
                             levels = c("dam_storage", "urban", "ag"),
                             labels = c("Dam Storage (ML)",
                                        "Urban Consumption (ML/day)",
-                                       "Agricultural Consumption (ML/day")))
+                                       "Agricultural Consumption (ML/day)")))
 
 p <- ggplot(df, aes(x = date, y = quantity)) +
   geom_line(size = 0.5) +
