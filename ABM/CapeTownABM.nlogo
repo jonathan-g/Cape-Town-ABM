@@ -1225,7 +1225,7 @@ INPUTBOX
 152
 260
 water-price-elasticity
--0.51
+-0.3
 1
 0
 Number
@@ -1237,7 +1237,7 @@ SWITCH
 557
 Scenario-1?
 Scenario-1?
-1
+0
 1
 -1000
 
@@ -1302,7 +1302,7 @@ INPUTBOX
 152
 321
 share-other-crops-irrigation
-0.57
+0.69
 1
 0
 Number
@@ -1765,12 +1765,12 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.0.2
+NetLogo 6.0.4
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
 <experiments>
-  <experiment name="scenario 2 price elasticity" repetitions="1" runMetricsEveryStep="true">
+  <experiment name="scenario 2 price elasticity" repetitions="10" runMetricsEveryStep="true">
     <setup>setup
 load-rain-temp-history</setup>
     <go>go</go>
@@ -1808,7 +1808,7 @@ load-rain-temp-history</setup>
       <value value="5.2"/>
     </enumeratedValueSet>
   </experiment>
-  <experiment name="scenario 1 efficiency" repetitions="1" runMetricsEveryStep="true">
+  <experiment name="scenario 1 efficiency" repetitions="10" runMetricsEveryStep="true">
     <setup>setup
 load-rain-temp-history</setup>
     <go>go</go>
@@ -1837,7 +1837,7 @@ load-rain-temp-history</setup>
       <value value="0.2"/>
     </enumeratedValueSet>
   </experiment>
-  <experiment name="scenario 1 share" repetitions="1" runMetricsEveryStep="true">
+  <experiment name="scenario 1 share" repetitions="10" runMetricsEveryStep="true">
     <setup>setup
 load-rain-temp-history</setup>
     <go>go</go>

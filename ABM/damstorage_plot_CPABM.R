@@ -16,7 +16,7 @@ df = read_csv("Monthly_urban_agriculture_water_use.csv") %>%
                                        "Agricultural Consumption (ML/day")))
 
 p <- ggplot(df, aes(x = date, y = quantity)) +
-  geom_line(size = 1) +
+  geom_line(size = 0.5) +
   facet_wrap(~category, ncol = 1, scale = "free_y") +
   scale_y_continuous(labels = scales::comma_format()) +
   labs(x = "Year", y = NULL) +
